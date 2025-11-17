@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
  *  - Loads users by email (username = email).
  *  - BCrypt password checks.
  *  - Form login posts to /login and expects form fields email & password.
- *  - CSRF enabled for pages, ignored for /api/**.
+ *  - CSRF enabled for pages, ignored for /api/** and /dev/** (dev-only).
  *  - Permit static resources and the common public pages (/login, /register, /dev/**).
  */
 @Configuration
@@ -43,11 +43,6 @@ public class SecurityConfig {
         this.userRepository = userRepository;
     }
 
-    /**
-     * UserDetailsService wired to your UserRepository.
-     * Expects User.getEmail(), User.getPassword(), User.getEnabled() and User.getRoles().
-     * Roles should be a collection of Role objects exposing getName().
-     */
     @Bean
     public UserDetailsService userDetailsService() {
         return username -> {
@@ -56,13 +51,11 @@ public class SecurityConfig {
             Optional<User> opt = userRepository.findByEmail(username);
             User user = opt.orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
-            // build authorities from roles; if roles are null/empty -> empty list
             List<SimpleGrantedAuthority> authorities = Optional.ofNullable(user.getRoles())
                     .map(roles -> roles.stream()
                             .map(r -> {
                                 String rn;
                                 try {
-                                    // Role.getName() expected
                                     rn = (r == null ? "" : r.getName());
                                 } catch (Exception ex) {
                                     rn = "";
@@ -88,17 +81,11 @@ public class SecurityConfig {
         };
     }
 
-    /**
-     * Password encoder bean. Strength 10 is default for BCrypt and matches most existing hashes.
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(10);
     }
 
-    /**
-     * DaoAuthenticationProvider wired to the UserDetailsService and BCrypt encoder.
-     */
     @Bean
     public DaoAuthenticationProvider daoAuthenticationProvider(UserDetailsService uds, PasswordEncoder encoder) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
@@ -107,17 +94,11 @@ public class SecurityConfig {
         return provider;
     }
 
-    /**
-     * Expose AuthenticationManager (useful for programmatic logins, tests, etc).
-     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration cfg) throws Exception {
         return cfg.getAuthenticationManager();
     }
 
-    /**
-     * CORS configuration for local dev frontends. Adjust origins in production.
-     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
@@ -128,22 +109,17 @@ public class SecurityConfig {
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // apply to API endpoints (pages served by server keep normal same-origin protections)
         source.registerCorsConfiguration("/api/**", config);
         return source;
     }
 
-    /**
-     * The main security filter chain.
-     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, UserDetailsService uds) throws Exception {
         http
-            // enable CORS (uses corsConfigurationSource)
             .cors(Customizer.withDefaults())
 
-            // CSRF remains enabled for pages; ignore API endpoints so token-based clients can use them
-            .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
+            // <-- Ignore CSRF for API and dev endpoints (dev-only)
+            .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**", "/dev/**"))
 
             // For API endpoints return 401 JSON instead of redirect
             .exceptionHandling(ex -> ex
@@ -155,34 +131,37 @@ public class SecurityConfig {
 
             // authorization rules
             .authorizeHttpRequests(authorize -> authorize
-                    // public static resources & pages
                     .requestMatchers(
                             "/css/**", "/js/**", "/images/**", "/webjars/**",
                             "/", "/index", "/register", "/login", "/error", "/api/auth/**", "/dev/**"
                     ).permitAll()
-
-                    // example public APIs
                     .requestMatchers("/api/reports/**").permitAll()
-
-                    // allow anonymous POST /register (your controller handles registration logic)
                     .requestMatchers(HttpMethod.POST, "/register").permitAll()
-
-                    // everything else requires authentication
                     .anyRequest().authenticated()
             )
 
-            // form login configuration: our login.html posts to /login with fields "email" and "password"
+            // form login configuration with custom failure handler that exposes reason
             .formLogin(form -> form
                     .loginPage("/login")
                     .loginProcessingUrl("/login")
                     .usernameParameter("email")
                     .passwordParameter("password")
                     .defaultSuccessUrl("/dashboard", true)
-                    .failureUrl("/login?error=true")
+                    .failureHandler((request, response, exception) -> {
+                        String reason = "error";
+                        // use fully-qualified exception class names to avoid extra imports
+                        if (exception instanceof org.springframework.security.authentication.DisabledException) {
+                            reason = "disabled";
+                        } else if (exception instanceof org.springframework.security.authentication.LockedException) {
+                            reason = "locked";
+                        } else if (exception instanceof org.springframework.security.authentication.BadCredentialsException) {
+                            reason = "invalid";
+                        }
+                        response.sendRedirect("/login?result=" + reason);
+                    })
                     .permitAll()
             )
 
-            // logout configuration
             .logout(logout -> logout
                     .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
                     .logoutSuccessUrl("/login?logout=true")
@@ -191,16 +170,15 @@ public class SecurityConfig {
                     .permitAll()
             )
 
-            // remember-me (optional)
             .rememberMe(remember -> remember
                     .key("smartspend-remember-me-key")
                     .tokenValiditySeconds(7 * 24 * 60 * 60)
                     .userDetailsService(uds)
             )
 
-            // wire the DaoAuthenticationProvider (makes sure password encoder + userDetailsService are used)
             .authenticationProvider(daoAuthenticationProvider(uds, passwordEncoder()));
 
         return http.build();
     }
 }
+
