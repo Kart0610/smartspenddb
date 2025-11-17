@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SmartSpend — Login</title>
+  <style>
+    :root {
+      --bg: #081923;
+      --card-bg: #0f2b38;
+      --accent: #00e6e6;
+      --text-light: #d1d5db;
+      --danger: #ff6961;
+      --success: #00ffae;
+    }
+
+    html,body { height: 100%; }
+
+    body {
+      background: linear-gradient(to bottom right, var(--bg), var(--card-bg));
+      font-family: "Segoe UI", Roboto, sans-serif;
+      color: var(--text-light);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    .login-container {
+      background: var(--card-bg);
+      padding: 2.5rem 3rem;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      width: 350px;
+      text-align: center;
+    }
+
+    h2 {
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+      font-size: 1.8rem;
+    }
+
+    form { display:flex; flex-direction:column; gap:1rem; }
+
+    input[type="email"], input[type="password"] {
+      padding: .8rem;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      background: rgba(255,255,255,0.1);
+      color: var(--text-light);
+      font-size: 1rem;
+    }
+
+    input::placeholder { color:#a9b1b8; }
+
+    button {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: .9rem;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all .2s ease;
+    }
+    button:hover { transform: translateY(-2px); }
+
+    .error { color: var(--danger); margin-top: 1rem; }
+    .success { color: var(--success); margin-top: 1rem; }
+    p { margin-top: 1rem; font-size:.95rem; }
+    a { color: var(--accent); text-decoration: none; font-weight:500; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+
+<body>
+  <div class="login-container">
+    <h2>Login</h2>
+
+    <!-- form: must be POST to match SecurityConfig loginProcessingUrl("/login") -->
+    <form th:action="@{/login}" method="post">
+      <!-- single CSRF token (Thymeleaf supplies parameter name & value) -->
+      <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
+      <input type="email" name="email" placeholder="Email" required />
+      <input type="password" name="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+    </form>
+
+    <div th:if="${param.error}" class="error">
+      <p>Invalid email or password</p>
+    </div>
+
+    <div th:if="${param.logout}" class="success">
+      <p>Logged out successfully</p>
+    </div>
+
+    <p>Don’t have an account? <a th:href="@{/register}">Register</a></p>
+  </div>
+</body>
+</html>

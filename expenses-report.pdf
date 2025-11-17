@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SmartSpend Login</title>
+</head>
+<body>
+<h2>Login</h2>
+
+<form action="/login" method="post"><input type="hidden" name="_csrf" value="0dBu__nvheZzzX2yEXESaEKw_SWEMZ1kr-erDPa4OEvkTEvz5eBcxszbttFe_E-DIVwmUSCE0ES8AvxJytPOPsWJXHLSdHrG"/>
+    <input type="email" name="username" placeholder="Email" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <input type="hidden" name="_csrf" value="0dBu__nvheZzzX2yEXESaEKw_SWEMZ1kr-erDPa4OEvkTEvz5eBcxszbttFe_E-DIVwmUSCE0ES8AvxJytPOPsWJXHLSdHrG">
+    <button type="submit">Login</button>
+</form>
+
+
+
+
+<p>Don’t have an account? <a href="/register">Register</a></p>
+
+</body>
+</html>

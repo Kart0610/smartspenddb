@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SmartSpend — Email Verification</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Roboto, system-ui, sans-serif;
+      background: linear-gradient(to bottom right, #081923, #0f2b38);
+      color: #d1d5db;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+    }
+    h2 {
+      color: #00e6e6;
+      margin-bottom: 0.5rem;
+    }
+    p {
+      margin: 0.75rem 0;
+      font-size: 1rem;
+    }
+    a {
+      color: #00e6e6;
+      text-decoration: none;
+      font-weight: 600;
+      border: 1px solid #00e6e6;
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+      display: inline-block;
+    }
+    a:hover {
+      background: #00e6e6;
+      color: #081923;
+    }
+    .resend-box {
+      margin-top: 1.2rem;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 1rem;
+      border-radius: 10px;
+      max-width: 320px;
+    }
+    input {
+      width: 90%;
+      padding: 0.5rem;
+      border-radius: 6px;
+      border: none;
+      margin-bottom: 0.6rem;
+      text-align: center;
+    }
+    button {
+      background: #00e6e6;
+      color: #081923;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover {
+      background: #00bcd4;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Registration Complete</h2>
+
+  <p th:text="${message != null ? message : 'Check your email to verify your account.'}">
+    Check your email to verify your account.
+  </p>
+
+  <p th:if="${error}" style="color: #ff8080;" th:text="${error}"></p>
+
+  <div class="resend-box">
+    <p style="margin-bottom: 0.5rem;">Didn’t receive the verification email?</p>
+    <form id="resendForm" method="post" action="/resend-verification"
+          onsubmit="return handleResend(event)">
+      <input type="email" name="email" id="email" placeholder="Enter your email" required />
+      <button type="submit">Resend Verification</button>
+    </form>
+    <p id="resendMsg" style="margin-top:0.5rem; font-size:0.9rem;"></p>
+  </div>
+
+  <a th:href="@{/login}">Go to Login</a>
+
+  <script>
+    async function handleResend(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const msg = document.getElementById('resendMsg');
+      msg.textContent = 'Sending...';
+
+      try {
+        const res = await fetch('/resend-verification', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          body: new URLSearchParams({ email })
+        });
+        const data = await res.json();
+        msg.textContent = data.message || 'If an account exists, a verification email has been sent.';
+      } catch (err) {
+        msg.textContent = 'Failed to send request. Please try again.';
+      }
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SmartSpend — Incomes</title>
+
+  <style>
+    :root{
+      --bg-1:#081923;--bg-2:#0f2b38;--accent:#00e6e6;--card-bg:#0d2b36;
+      --text-light:#d1d5db;
+    }
+    body{margin:0;font-family:"Segoe UI",Roboto,sans-serif;background:linear-gradient(to bottom right,var(--bg-1),var(--bg-2));color:var(--text-light)}
+    header{padding:1.5rem 3rem;display:flex;align-items:center;justify-content:space-between}
+    header h1{color:var(--accent);margin:0}
+    .nav-btn{background:transparent;border:1px solid var(--accent);color:var(--accent);padding:.4rem 1rem;border-radius:10px;text-decoration:none}
+    main{padding:3rem 2rem}
+    .container{max-width:1100px;margin:0 auto}
+    .card{background:var(--card-bg);border-radius:12px;padding:18px;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+    table{width:100%;border-collapse:collapse;color:var(--text-light)}
+    th,td{padding:12px;border-bottom:1px solid rgba(255,255,255,0.04)}
+    th{color:var(--accent);text-align:left}
+    .right{float:right}
+    .add-btn{background:var(--accent);color:#033; padding:8px 12px;border-radius:8px;text-decoration:none;font-weight:600}
+  </style>
+</head>
+<body>
+<header>
+  <h1>SmartSpend — Incomes</h1>
+  <div>
+    <a th:href="@{/dashboard}" class="nav-btn">Dashboard</a>
+    <a th:href="@{/expenses}" class="nav-btn">Expenses</a>
+    <a th:href="@{/expenses/add}" class="add-btn">+ Add Transaction</a>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="margin:0;color:var(--accent)">Income Transactions</h2>
+      <div class="small-muted">Total: <strong th:text="${total}">0.00</strong></div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>Type</th>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- iterate incomes (controller uses model attribute "expenses" for incomes page) -->
+          <tr th:each="inc : ${expenses}">
+            <td th:text="${inc.title}">Salary</td>
+            <td th:text="${inc.category}">Salary</td>
+            <td th:text="${#numbers.formatDecimal(inc.amount, 2, 'COMMA', 2, 'POINT')}">1000.00</td>
+            <td th:text="${inc.type}">income</td>
+            <td th:text="${inc.date}">2025-11-01</td>
+            <td th:text="${inc.description}">Monthly salary</td>
+            <td>
+              <a th:href="@{|/expenses/delete/${inc.id}|}" style="color:#fff;background:#e74c3c;padding:6px 10px;border-radius:6px;text-decoration:none">Delete</a>
+            </td>
+          </tr>
+
+          <!-- empty state -->
+          <tr th:if="${expenses == null or #lists.isEmpty(expenses)}">
+            <td colspan="7" style="text-align:center;color:#9aa6ad;padding:20px">No incomes found</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+</body>
+</html>
+
