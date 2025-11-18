@@ -2,12 +2,19 @@ package com.example.smartspendapp.controller;
 
 import com.example.smartspendapp.model.User;
 import com.example.smartspendapp.repository.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -18,7 +25,6 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/dev/fix")
 public class DevFixController { 
- 
 
     private final Logger log = LoggerFactory.getLogger(DevFixController.class);
     private final UserRepository userRepository;
@@ -29,11 +35,8 @@ public class DevFixController {
         this.passwordEncoder = passwordEncoder;
     }
 
-    /**
-     * Check whether a provided plain password matches the stored bcrypt hash.
-     * Example:
-     *   GET /dev/check-password?email=karthikat0610@gmail.com&plain=TempPass123!
-     */
+    // ------------------ (EXISTING) CHECK PASSWORD ------------------
+
     @GetMapping("/check-password")
     public ResponseEntity<?> checkPassword(@RequestParam String email, @RequestParam String plain) {
         Optional<User> maybe = userRepository.findByEmail(email);
@@ -42,7 +45,6 @@ public class DevFixController {
         }
         User user = maybe.get();
         boolean matches = passwordEncoder.matches(plain, user.getPassword());
-        // return some helpful debugging values but do not leak entire password
         return ResponseEntity.ok(Map.of(
             "email", user.getEmail(),
             "matches", matches,
@@ -50,12 +52,8 @@ public class DevFixController {
         ));
     }
 
-    /**
-     * Set a new password for the user (dev only).
-     * Example:
-     *   POST /dev/set-password  (form-encoded)
-     *   body: email=... & password=...
-     */
+    // ------------------ (EXISTING) FORCE SET PASSWORD ------------------
+
     @PostMapping("/set-password")
     public ResponseEntity<?> setPassword(@RequestParam String email, @RequestParam String password) {
         Optional<User> maybe = userRepository.findByEmail(email);
@@ -65,9 +63,43 @@ public class DevFixController {
         User user = maybe.get();
         String encoded = passwordEncoder.encode(password);
         user.setPassword(encoded);
-        user.setEnabled(true); // optional: enable the account for testing
+        user.setEnabled(true);
         userRepository.save(user);
         log.info("Dev: password updated for {}", email);
         return ResponseEntity.ok(Map.of("message", "password-updated", "email", email));
+    }
+
+    // ------------------ NEW → MOCK LOGIN (ANY EMAIL, NO PASSWORD) ------------------
+
+    /**
+     * Mock login for DEV only.
+     * Lets ANY email log in WITHOUT password.
+     * After calling this, the session is authenticated.
+     *
+     * Example:
+     *   POST /dev/fix/mock-login?email=test@test.com
+     */
+    @PostMapping("/mock-login")
+    public ResponseEntity<?> mockLogin(@RequestParam String email, HttpServletRequest request) {
+
+        // Give the fake user a simple ROLE_USER authority
+        List<SimpleGrantedAuthority> authorities =
+                List.of(new SimpleGrantedAuthority("ROLE_USER"));
+
+        // Build fake authentication
+        Authentication auth = new UsernamePasswordAuthenticationToken(email, null, authorities);
+
+        // Put into security context
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        // Save into session
+        HttpSession session = request.getSession(true);
+        session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+
+        log.warn("DEV-ONLY LOGIN: User '{}' logged in WITHOUT PASSWORD", email);
+
+        return ResponseEntity.ok(
+                Map.of("message", "mock-login-success", "email", email)
+        );
     }
 }
