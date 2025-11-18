@@ -1,4 +1,4 @@
-# ---------- Build stage ----------
+﻿# ---------- Build stage ----------
 FROM maven:3.9.6-eclipse-temurin-17 AS build
 
 WORKDIR /workspace
@@ -35,7 +35,7 @@ ENV JAVA_OPTS="-Xms256m -Xmx512m -Djava.security.egd=file:/dev/./urandom"
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -q --spider http://localhost:8080/ || exit 1
 
-USER 
+USER appuser
 
 ENTRYPOINT ["sh", "-c", "exec java  -jar /app/app.jar"]
 
