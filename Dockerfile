@@ -19,7 +19,7 @@ RUN mvn -B -DskipTests package
 FROM eclipse-temurin:17-jre-jammy
 
 ARG APP_USER=appuser
-RUN groupadd -r  && useradd -r -g  -d /home/ -m 
+RUN groupadd -r appuser && useradd -r -g appuser -d /home/appuser -m -s /usr/sbin/nologin appuser
 
 WORKDIR /app
 
